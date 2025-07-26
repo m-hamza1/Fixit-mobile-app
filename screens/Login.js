@@ -9,9 +9,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 
-const ServiceProviderLogin = () => {
-  const navigation = useNavigation(); // ✅ This makes navigation work
-
+const Login = () => {
+  const navigation = useNavigation();  
   return (
     <LinearGradient
       colors={['#f5b993', '#cbe8dd']}
@@ -35,7 +34,7 @@ const ServiceProviderLogin = () => {
           style={styles.input}
         />
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('ForgetPassword')}>
           <Text style={styles.forgotText}>Forgot password?</Text>
         </TouchableOpacity>
 
@@ -46,10 +45,13 @@ const ServiceProviderLogin = () => {
           <Text style={styles.loginText}>Log In</Text>
         </TouchableOpacity>
 
-        <Text style={styles.signupText}>
-          Don't have an account?{' '}
-          <Text style={styles.signupLink}>Sign up</Text>
-        </Text>
+        <View style={styles.signupRow}>
+          <Text style={styles.signupText}>Don't have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('AskRole')}>
+            <Text style={styles.signupLink}>Create Account</Text>
+          </TouchableOpacity>
+        </View>
+
       </View>
     </LinearGradient>
   );
@@ -110,10 +112,21 @@ const styles = StyleSheet.create({
   },
   signupText: {
     color: '#A0BDA0',
+      
+    
   },
   signupLink: {
     textDecorationLine: 'underline',
+    color: '#A0BDA0',
+  
   },
+  signupRow: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+
 });
 
-export default ServiceProviderLogin;
+export default Login;
