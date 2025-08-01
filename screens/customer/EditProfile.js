@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { db, auth } from '../../utils/firebase';
+import { ref, update } from 'firebase/database';
 
 const EditProfile = () => {
   const navigation = useNavigation();
@@ -19,10 +21,28 @@ const EditProfile = () => {
   const [email, setEmail] = useState(customer.email);
   const [phone, setPhone] = useState(customer.phone);
 
-  const handleSave = () => {
-    // Ideally, you'd call an API to save the data
-    Alert.alert('Success', 'Profile updated successfully!');
-    navigation.goBack();
+  const handleSave = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user || !user.uid) {
+        Alert.alert('Error', 'No user logged in.');
+        return;
+      }
+      if (user.uid === 'undefined') {
+        Alert.alert('Error', 'Invalid user.');
+        return;
+      }
+      const userRef = ref(db, 'users/' + user.uid);
+      await update(userRef, {
+        name,
+        email,
+        phone,
+      });
+      Alert.alert('Success', 'Profile updated successfully!');
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update profile.');
+    }
   };
 
   return (

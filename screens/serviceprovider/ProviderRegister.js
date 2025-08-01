@@ -1,14 +1,14 @@
+// screens/ProviderRegister.js
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
+  View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+
+import { auth, db } from '../../utils/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { ref, set } from 'firebase/database';
 
 const categories = [
   'Plumber',
@@ -17,42 +17,67 @@ const categories = [
   'Painter',
   'Handyman',
   'Gardener',
+  'Carpenter',
+  'AC Technician',
+  'Appliance Repair',
+  'Welder',
+  'Mason',
+  'Roofer',
+  'Glass Fitter',
+  'Locksmith',
+  'Pest Control',
+  'Water Tank Cleaning',
+  'CCTV Installer',
+  'Internet Technician',
+  'Other',
 ];
 
 const ProviderRegister = () => {
   const navigation = useNavigation();
   const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    password: '',
-    selectedCategories: [],
+    name: '', phone: '', email: '', password: '', selectedCategories: []
   });
 
   const toggleCategory = (category) => {
-    setForm((prev) => {
-      const exists = prev.selectedCategories.includes(category);
-      return {
-        ...prev,
-        selectedCategories: exists
-          ? prev.selectedCategories.filter((c) => c !== category)
-          : [...prev.selectedCategories, category],
-      };
-    });
+    const exists = form.selectedCategories.includes(category);
+    setForm((prev) => ({
+      ...prev,
+      selectedCategories: exists
+        ? prev.selectedCategories.filter((c) => c !== category)
+        : [...prev.selectedCategories, category],
+    }));
   };
 
-  const handleRegister = () => {
-    // TODO: API Call or Validation
-    console.log('Registering service provider:', form);
+  const handleRegister = async () => {
+    const { name, phone, email, password, selectedCategories } = form;
+    if (!name || !phone || !email || !password || selectedCategories.length === 0) {
+      alert('Please fill all fields and select at least one category.');
+      return;
+    }
 
-    // 👇 If you want to navigate after registration, replace with actual screen name
-    // navigation.navigate('SomeOtherScreen'); 
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      await set(ref(db, 'users/' + userCredential.user.uid), {
+        uid: userCredential.user.uid,
+        name,
+        phone,
+        email,
+        role: 'provider',
+        categories: selectedCategories,
+        createdAt: new Date().toISOString(),
+      });
+
+      navigation.navigate('ProviderHomeScreen');
+    } catch (err) {
+      console.log(err);
+      alert('Registration failed. Please try again.');
+    }
   };
 
   return (
     <View style={styles.outerContainer}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -61,7 +86,6 @@ const ProviderRegister = () => {
           <View style={{ width: 24 }} />
         </View>
 
-        {/* Input Fields */}
         <TextInput
           style={styles.input}
           placeholder="Full Name"
@@ -94,7 +118,6 @@ const ProviderRegister = () => {
           onChangeText={(text) => setForm({ ...form, password: text })}
         />
 
-        {/* Category Selection */}
         <Text style={styles.label}>Select Services You Provide:</Text>
         <View style={styles.categoriesContainer}>
           {categories.map((cat) => {
@@ -102,10 +125,7 @@ const ProviderRegister = () => {
             return (
               <TouchableOpacity
                 key={cat}
-                style={[
-                  styles.categoryBtn,
-                  isSelected && { backgroundColor: '#2BF06733' },
-                ]}
+                style={[styles.categoryBtn, isSelected && { backgroundColor: '#2BF06733' }]}
                 onPress={() => toggleCategory(cat)}
               >
                 <Text style={styles.categoryText}>{cat}</Text>
@@ -114,19 +134,10 @@ const ProviderRegister = () => {
           })}
         </View>
 
-        {/* Submit */}
-        <TouchableOpacity
-          style={styles.registerBtn}
-          onPress={() => {
-            handleRegister();
-            navigation.navigate('ProviderHomeScreen'); // Navigate to Provider Home Screen after registration
-          }}
-        >
+        <TouchableOpacity style={styles.registerBtn} onPress={handleRegister}>
           <Text style={styles.registerText}>Register</Text>
         </TouchableOpacity>
-        
       </ScrollView>
-
     </View>
   );
 };

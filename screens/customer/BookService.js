@@ -43,19 +43,75 @@ const BookService = () => {
     }
   }, [route.name]);
 
-  // ✅ Function to handle booking confirmation
-  const handleConfirmBooking = () => {
-    Alert.alert(
-      'Booking Confirmed',
-      'Your booking has been successfully confirmed.',
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('Dashboard'), // ✅ Go to Dashboard.js
-        },
-      ],
-      { cancelable: false }
-    );
+  // Function to handle booking confirmation and save to Firebase
+  const handleConfirmBooking = async () => {
+    try {
+      // Import Firebase inside the function to avoid circular deps
+      const { db, auth } = require('../../utils/firebase');
+      const { ref, push, set } = require('firebase/database');
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert('Error', 'You must be logged in to book a service.');
+        return;
+      }
+
+      // Example: If you select a provider (e.g., 'Meri Baatein'), pass their info here
+      // In a real app, this would come from navigation params or selection
+      const selectedProvider = route.params?.provider || {
+        id: 'meri_baatein_id',
+        name: 'Meri Baatein',
+        phone: '', // Add phone if available
+      };
+
+      const newServiceRef = push(ref(db, 'services'));
+      const bookingData = {
+        id: newServiceRef.key,
+        customerId: user.uid,
+        customerName: user.displayName || user.email || 'Customer',
+        customerPhone: user.phoneNumber || '',
+        service: route.params?.service || 'General Service',
+        address,
+        date: date.toLocaleDateString(),
+        time: date.toLocaleTimeString(),
+        note: '', // Add note if you have a field for it
+        status: 'pending',
+        providerId: selectedProvider.id,
+        providerName: selectedProvider.name,
+        providerPhone: selectedProvider.phone,
+        createdAt: Date.now(),
+      };
+      await set(newServiceRef, bookingData);
+
+      // Send notification to the specific provider
+      const notificationsRef = ref(db, `provider_notifications/${selectedProvider.id}`);
+      const newNotificationRef = push(notificationsRef);
+      await set(newNotificationRef, {
+        type: 'new_booking',
+        message: `New booking request for: ${bookingData.service}`,
+        serviceId: bookingData.id,
+        customerId: bookingData.customerId,
+        customerName: bookingData.customerName,
+        address: bookingData.address,
+        date: bookingData.date,
+        time: bookingData.time,
+        status: 'pending',
+        timestamp: Date.now(),
+      });
+
+      Alert.alert(
+        'Booking Confirmed',
+        'Your booking has been successfully confirmed.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Dashboard'),
+          },
+        ],
+        { cancelable: false }
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to book service. Please try again.');
+    }
   };
 
   return (

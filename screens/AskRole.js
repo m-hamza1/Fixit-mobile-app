@@ -1,7 +1,8 @@
+// screens/AskRole.js
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { MaterialIcons } from '@expo/vector-icons';  
+import { MaterialIcons } from '@expo/vector-icons';
 
 const AskRole = () => {
   const navigation = useNavigation();
@@ -13,7 +14,8 @@ const AskRole = () => {
 
         <TouchableOpacity
           style={styles.card}
-          onPress={() => navigation.navigate('CustomerRegister')}>
+          onPress={() => navigation.navigate('CustomerRegister')}
+        >
           <MaterialIcons name="person" size={40} color="#2BF067" />
           <Text style={styles.cardTitle}>I am a Customer</Text>
           <Text style={styles.cardText}>I want to book services</Text>
@@ -21,7 +23,8 @@ const AskRole = () => {
 
         <TouchableOpacity
           style={styles.card}
-          onPress={() => navigation.navigate('ProviderRegister')}>
+          onPress={() => navigation.navigate('ProviderRegister')}
+        >
           <MaterialIcons name="build" size={40} color="#2BF067" />
           <Text style={styles.cardTitle}>I am a Service Provider</Text>
           <Text style={styles.cardText}>I want to offer services</Text>
@@ -41,6 +44,8 @@ const AskRole = () => {
     </View>
   );
 };
+
+export default AskRole;
 
 const styles = StyleSheet.create({
   container: {
@@ -67,8 +72,8 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     alignItems: 'center',
-    elevation: 5, // Android shadow
-    shadowColor: '#000', // iOS shadow
+    elevation: 5,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -108,5 +113,3 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 });
-
-export default AskRole;

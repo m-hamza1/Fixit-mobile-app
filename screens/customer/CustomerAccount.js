@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,24 +9,46 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { auth, db } from '../../utils/firebase';
+import { ref, get } from 'firebase/database';
 
 const CustomerAccount = () => {
   const navigation = useNavigation();
+  const [customer, setCustomer] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Dummy user data
-  const customer = {
-    name: 'Ali Raza',
-    email: 'ali@example.com',
-    phone: '03123456789',
-  };
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      const fetchCustomer = async () => {
+        try {
+          const user = auth.currentUser;
+          if (user) {
+            const userRef = ref(db, 'users/' + user.uid);
+            const snapshot = await get(userRef);
+            if (snapshot.exists()) {
+              setCustomer(snapshot.val());
+            }
+          }
+        } catch (error) {
+          console.log('Error fetching customer:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchCustomer();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
-        onPress: () => {
-          // Clear async storage / auth state if needed
+        onPress: async () => {
+          try {
+            await auth.signOut();
+          } catch (e) {}
           navigation.reset({
             index: 0,
             routes: [{ name: 'Login' }],
@@ -35,6 +57,14 @@ const CustomerAccount = () => {
       },
     ]);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: '#fff', marginTop: 50 }}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -46,15 +76,15 @@ const CustomerAccount = () => {
           <Ionicons name="arrow-back" size={26} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Account</Text>
-        <View style={{ width: 26 }} /> {/* Symmetric space */}
+        <View style={{ width: 26 }} />
       </View>
 
       {/* Profile Info */}
       <View style={styles.profileBox}>
         <Ionicons name="person-circle" size={80} color="#2BF067" />
-        <Text style={styles.name}>{customer.name}</Text>
-        <Text style={styles.email}>{customer.email}</Text>
-        <Text style={styles.phone}>📞 {customer.phone}</Text>
+        <Text style={styles.name}>{customer?.name || '-'}</Text>
+        <Text style={styles.email}>{customer?.email || '-'}</Text>
+        <Text style={styles.phone}>📞 {customer?.phone || '-'}</Text>
 
         {/* Edit Profile */}
         <TouchableOpacity

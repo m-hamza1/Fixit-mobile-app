@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,29 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { auth } from '../../utils/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 const ServiceProviderSignUp = () => {
   const navigation = useNavigation();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSignUp = async () => {
+    setError('');
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      navigation.navigate('CustomerRegister');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -27,26 +47,34 @@ const ServiceProviderSignUp = () => {
         placeholder="Full  Name"
         placeholderTextColor="#A0BDA0"
         style={styles.input}
+        value={name}
+        onChangeText={setName}
       />
       <TextInput
-        placeholder="Phone  Number or Email"
+        placeholder="Email"
         placeholderTextColor="#A0BDA0"
         style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
       />
       <TextInput
         placeholder="Password"
         placeholderTextColor="#A0BDA0"
         secureTextEntry
         style={styles.input}
+        value={password}
+        onChangeText={setPassword}
       />
 
-        <TouchableOpacity
+      {error ? <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text> : null}
+
+      <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('CustomerRegister')}>
+        onPress={handleSignUp}>
         <Text style={styles.buttonText}>Sign Up</Text>
-        </TouchableOpacity>
-
-
+      </TouchableOpacity>
 
       {/* Footer Text */}
       <Text style={styles.footerText}>

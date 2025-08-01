@@ -16,40 +16,48 @@ const ProviderDashboard = () => {
   const route = useRoute();
   const { selectedCategories = [] } = route.params || {};
 
-  const allRequests = [
-    {
-      id: 1,
-      customerName: 'Ali Raza',
-      service: 'Plumber',
-      time: 'Today, 5:00 PM',
-      address: 'Street 45, Model Town, Lahore',
-      note: 'Pipe leakage in kitchen.',
-      customerPhone: '0300-1234567',
-    },
-    {
-      id: 2,
-      customerName: 'Zara Khan',
-      service: 'Electrician',
-      time: 'Tomorrow, 11:00 AM',
-      address: 'Phase 4, DHA Karachi',
-      note: 'Install ceiling fan and fix switch.',
-      customerPhone: '0321-9988776',
-    },
-    // Add more with phone numbers...
-  ];
-
+  const [allRequests, setAllRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    let filtered = allRequests;
+    // Fetch all customer posted services from Firebase
+    const fetchServices = async () => {
+      try {
+        const { db } = require('../../utils/firebase');
+        const { ref, onValue } = require('firebase/database');
+        const servicesRef = ref(db, 'services');
+        onValue(servicesRef, (snapshot) => {
+          const services = [];
+          snapshot.forEach((child) => {
+            const data = child.val();
+            services.push({
+              id: child.key,
+              customerName: data.customerName || 'Customer',
+              service: data.category || '',
+              time: data.time || '',
+              address: data.address || '',
+              note: data.note || '',
+              // phone intentionally omitted
+            });
+          });
+          // Set all requests to state
+          setAllRequests(services);
+        });
+      } catch (err) {
+        setAllRequests([]);
+      }
+    };
+    fetchServices();
+  }, []);
 
+  useEffect(() => {
+    let filtered = allRequests;
     if (selectedCategories?.length > 0) {
       filtered = filtered.filter((req) =>
         selectedCategories.includes(req.service)
       );
     }
-
     if (searchQuery.trim() !== '') {
       filtered = filtered.filter(
         (req) =>
@@ -57,30 +65,15 @@ const ProviderDashboard = () => {
           req.service.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-
     setFilteredRequests(filtered);
-  }, [selectedCategories, searchQuery]);
+  }, [allRequests, selectedCategories, searchQuery]);
 
+  // Replace Accept/Decline logic with direct navigation
   const handleAccept = (request) => {
-    Alert.alert(
-      'Confirm Booking',
-      `Do you want to accept this request from ${request.customerName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Accept',
-          onPress: () =>
-            navigation.navigate('RequestDetailsScreen', {
-              request,
-              showPhone: true,
-            }),
-        },
-      ]
-    );
-  };
-
-  const handleDecline = (id) => {
-    alert(`Declined request #${id}`);
+    navigation.navigate('RequestDetailsScreen', {
+      request,
+      showPhone: false, // Don't show phone on details screen until customer accepts
+    });
   };
 
   return (
@@ -123,13 +116,7 @@ const ProviderDashboard = () => {
                   style={styles.acceptBtn}
                   onPress={() => handleAccept(req)}
                 >
-                  <Text style={styles.actionText}>Accept</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.declineBtn}
-                  onPress={() => handleDecline(req.id)}
-                >
-                  <Text style={styles.actionText}>Decline</Text>
+                  <Text style={styles.actionText}>View</Text>
                 </TouchableOpacity>
               </View>
             </View>

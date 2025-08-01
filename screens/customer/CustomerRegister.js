@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,64 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { auth, db } from '../../utils/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { ref, set } from 'firebase/database';
+
 const CustomerRegister = ({ navigation }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleRegister = async () => {
+    setError('');
+    setSuccess('');
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+    if (!name || !phone || !address) {
+      setError('All fields are required');
+      return;
+    }
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Store additional info in Firestore
+      await set(ref(db, 'users/' + userCredential.user.uid), {
+        name,
+        email,
+        phone,
+        address,
+        role: 'customer',
+        createdAt: new Date().toISOString(),
+      });
+      setSuccess('Registration Successfully!');
+      setTimeout(() => {
+        setSuccess('');
+        navigation.navigate('CustomerHome');
+      }, 1500);
+    } catch (err) {
+      // Firebase error handling
+      let msg = 'Registration failed. Please try again.';
+      if (err.code === 'auth/email-already-in-use') {
+        msg = 'This email is already registered. Please log in or use another email.';
+      } else if (err.code === 'auth/invalid-email') {
+        msg = 'Invalid email address.';
+      } else if (err.code === 'auth/weak-password') {
+        msg = 'Password should be at least 6 characters.';
+      } else if (err.code === 'auth/network-request-failed') {
+        msg = 'Network error. Please check your connection.';
+      } else if (err.code === 'auth/too-many-requests') {
+        msg = 'Too many attempts. Please try again later.';
+      }
+      setError(msg);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -32,29 +89,49 @@ const CustomerRegister = ({ navigation }) => {
             placeholder="Full Name"
             placeholderTextColor="#A0BDA0"
             style={styles.input}
+            value={name}
+            onChangeText={setName}
           />
           <TextInput
             placeholder="Email"
             placeholderTextColor="#A0BDA0"
             style={styles.input}
             keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
           />
           <TextInput
             placeholder="Phone Number"
             placeholderTextColor="#A0BDA0"
             style={styles.input}
             keyboardType="phone-pad"
+            value={phone}
+            onChangeText={setPhone}
           />
           <TextInput
             placeholder="Address"
             placeholderTextColor="#A0BDA0"
             style={[styles.input, styles.textArea]}
             multiline
+            value={address}
+            onChangeText={setAddress}
           />
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#A0BDA0"
+            style={styles.input}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+
+          {error ? <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text> : null}
+          {success ? <Text style={{ color: 'green', marginBottom: 10, fontWeight: 'bold', fontSize: 16 }}>{success}</Text> : null}
 
           <TouchableOpacity
             style={styles.submitButton}
-            onPress={() => navigation.navigate('CustomerHome')}
+            onPress={handleRegister}
           >
             <Text style={styles.submitText}>Submit</Text>
           </TouchableOpacity>

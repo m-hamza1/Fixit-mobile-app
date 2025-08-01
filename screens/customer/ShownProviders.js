@@ -11,120 +11,88 @@ import { Ionicons } from '@expo/vector-icons';
 import { Menu } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 
-const providers = [
-  {
-    id: '1',
-    name: 'Ethan Carter',
-    description: 'Expert plumber with 10+ years of experience',
-  },
-  {
-    id: '2',
-    name: 'Olivia Bennett',
-    description: 'Reliable plumbing services for residential and commercial properties',
-  },
-  {
-    id: '3',
-    name: 'Noah Thompson',
-    description: 'Specializing in emergency plumbing repairs',
-  },
-  {
-    id: '4',
-    name: 'Ava Harper',
-    description: 'Offering comprehensive plumbing solutions',
-  },
-];
-
 const ShownProviders = () => {
   const navigation = useNavigation();
+  const route = navigation.getState().routes[navigation.getState().index];
+  const selectedCategory = route.params?.category || '';
 
   const [ratingVisible, setRatingVisible] = useState(false);
   const [priceVisible, setPriceVisible] = useState(false);
   const [availabilityVisible, setAvailabilityVisible] = useState(false);
+  const [providers, setProviders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const { db } = require('../../utils/firebase');
+    const { ref, onValue } = require('firebase/database');
+    const usersRef = ref(db, 'users');
+    onValue(usersRef, (snapshot) => {
+      const result = [];
+      snapshot.forEach((child) => {
+        const data = child.val();
+        if (Array.isArray(data.categories) && data.categories.includes(selectedCategory)) {
+          result.push({
+            id: child.key,
+            name: data.name || '',
+            description: data.description || '',
+            categories: data.categories || [],
+            avatarUrl: data.avatarUrl || '', // optional future field
+          });
+        }
+      });
+      setProviders(result);
+      setLoading(false);
+    });
+  }, [selectedCategory]);
 
   return (
     <View style={styles.container}>
-      {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Top Ranked Plumbers</Text>
+        <Text style={styles.headerTitle}>Service Providers for {selectedCategory}</Text>
       </View>
 
-      {/* Filters */}
       <View style={styles.filterRow}>
-        {/* Rating Filter */}
-        <Menu
-          visible={ratingVisible}
-          onDismiss={() => setRatingVisible(false)}
-          anchor={
-            <TouchableOpacity style={styles.filterButton} onPress={() => setRatingVisible(true)}>
-              <Text style={styles.filterText}>Rating</Text>
-            </TouchableOpacity>
-          }
-        >
-          <Menu.Item onPress={() => {}} title="4+ Stars" />
-          <Menu.Item onPress={() => {}} title="3+ Stars" />
-          <Menu.Item onPress={() => {}} title="All Ratings" />
-        </Menu>
-
-        {/* Price Filter */}
-        <Menu
-          visible={priceVisible}
-          onDismiss={() => setPriceVisible(false)}
-          anchor={
-            <TouchableOpacity style={styles.filterButton} onPress={() => setPriceVisible(true)}>
-              <Text style={styles.filterText}>Price</Text>
-            </TouchableOpacity>
-          }
-        >
-          <Menu.Item onPress={() => {}} title="Under ₹1000" />
-          <Menu.Item onPress={() => {}} title="₹1000 - ₹5000" />
-          <Menu.Item onPress={() => {}} title="Above ₹5000" />
-        </Menu>
-
-        {/* Availability Filter */}
-        <Menu
-          visible={availabilityVisible}
-          onDismiss={() => setAvailabilityVisible(false)}
-          anchor={
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setAvailabilityVisible(true)}
-            >
-              <Text style={styles.filterText}>Availability</Text>
-            </TouchableOpacity>
-          }
-        >
-          <Menu.Item onPress={() => {}} title="Morning (8 AM - 12 PM)" />
-          <Menu.Item onPress={() => {}} title="Afternoon (12 PM - 5 PM)" />
-          <Menu.Item onPress={() => {}} title="Evening (5 PM - 9 PM)" />
-        </Menu>
+        {/* Placeholder for filters if needed */}
       </View>
 
-      {/* Provider List */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {providers.map((plumber) => (
-          <View key={plumber.id} style={styles.card}>
-            <Image
-              // Replace with actual image if available
-              // source={require('../assets/avatar-placeholder.png')}
-              style={styles.avatar}
-            />
-            <View style={styles.cardContent}>
-              <Text style={styles.verified}>Verified</Text>
-              <Text style={styles.name}>{plumber.name}</Text>
-              <Text style={styles.description}>{plumber.description}</Text>
-
+        {loading ? (
+          <Text style={{ color: '#fff', textAlign: 'center', marginTop: 30 }}>Loading providers...</Text>
+        ) : providers.length === 0 ? (
+          <Text style={{ color: '#fff', textAlign: 'center', marginTop: 30 }}>No providers found for this service.</Text>
+        ) : (
+          providers.map((provider) => (
+            <View key={provider.id} style={styles.card}>
+              {provider.avatarUrl ? (
+                <Image source={{ uri: provider.avatarUrl }} style={styles.avatar} />
+              ) : (
+                <Ionicons name="person-circle-outline" size={70} color="#2BF067" style={styles.avatarIcon} />
+              )}
+              <View style={styles.cardContent}>
+                <Text style={styles.verified}>Verified</Text>
+                <Text style={styles.name}>{provider.name}</Text>
+                <Text style={styles.description}>{provider.description}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 4 }}>
+                  {Array.isArray(provider.categories) &&
+                    provider.categories.slice(0, 4).map((cat, idx) => (
+                      <View key={idx} style={styles.tag}>
+                        <Text style={styles.tagText}>{cat}</Text>
+                      </View>
+                    ))}
+                </View>
                 <TouchableOpacity
                   style={styles.viewButton}
-                  onPress={() => navigation.navigate('ProviderProfile', { provider: plumber })}>
+                  onPress={() => navigation.navigate('ProviderProfile', { provider })}
+                >
                   <Text style={styles.viewButtonText}>View Profile</Text>
                 </TouchableOpacity>
-
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -157,17 +125,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
   },
-  filterButton: {
-    backgroundColor: '#1A2D23',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-  },
-  filterText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '500',
-  },
   scrollContent: {
     paddingBottom: 50,
   },
@@ -190,6 +147,14 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginRight: 14,
     backgroundColor: '#2D4435',
+  },
+  avatarIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 15,
+    marginRight: 14,
+    backgroundColor: '#2D4435',
+    textAlign: 'center',
   },
   cardContent: {
     flex: 1,
@@ -222,5 +187,18 @@ const styles = StyleSheet.create({
     color: '#A4F3C4',
     fontSize: 13,
     fontWeight: '500',
+  },
+  tag: {
+    backgroundColor: '#2BF06733',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 6,
+    marginBottom: 4,
+  },
+  tagText: {
+    color: '#2BF067',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

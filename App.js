@@ -21,6 +21,8 @@ import RequestDetailsScreen from './screens/serviceprovider/RequestDetailsScreen
 import ProviderHomeScreen from './screens/serviceprovider/ProviderHomeScreen';
 import ProviderAccountScreen from './screens/serviceprovider/ProviderAccountScreen'; // Adjust the path as necessary
 import ProviderSentRequests from './screens/serviceprovider/ProviderSentRequests';
+import ProviderNotifications from './screens/serviceprovider/ProviderNotifications'; // Adjust the path as necessary
+import JobDetailsScreen from './screens/serviceprovider/JobDetailsScreen';
 
 
 //Customer Screens
@@ -36,6 +38,8 @@ import PostService from './screens/customer/PostService'; // Assuming you have a
 import MyPostedServices from './screens/customer/MyPostedServices'; // Assuming you have a MyPostedServices screen
 import CustomerAccount from './screens/customer/CustomerAccount'; // Assuming you have a CustomerAccount screen 
 import EditProfile from './screens/customer/EditProfile'; // Assuming you have an EditProfile screen
+import CustomerNotifications from './screens/customer/CustomerNotifications';
+import ContactProvider from './screens/customer/ContactProvider';
 
 
 // ✅ Create the Stack Navigator
@@ -69,6 +73,8 @@ export default function App() {
 
         <Stack.Screen name="ProviderHomeScreen" component={ProviderHomeScreen} />
 
+        <Stack.Screen name="ProviderNotifications" component={ProviderNotifications} />
+
         <Stack.Screen name="ProviderAccountScreen" component={ProviderAccountScreen} />
 
         <Stack.Screen name="ProviderDashboard" component={ProviderDashboard} />
@@ -98,6 +104,12 @@ export default function App() {
         <Stack.Screen name="CustomerAccount" component={CustomerAccount} />
 
         <Stack.Screen name="EditProfile" component={EditProfile} />
+
+      <Stack.Screen name="CustomerNotifications" component={CustomerNotifications} />
+
+        <Stack.Screen name="JobDetailsScreen" component={JobDetailsScreen} />
+
+        <Stack.Screen name="ContactProvider" component={ContactProvider} />       
 
 
       </Stack.Navigator>

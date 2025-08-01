@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,19 +6,52 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
+  ToastAndroid,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { auth, db } from '../../utils/firebase';
+import { ref, get, update } from 'firebase/database';
+
+const allServices = [
+  'Plumber', 'Electrician', 'Cleaner', 'Painter', 'Handyman', 'Gardener',
+  'Carpenter', 'AC Technician', 'Appliance Repair', 'Welder', 'Mason',
+  'Roofer', 'Glass Fitter', 'Locksmith', 'Pest Control', 'Water Tank Cleaning',
+  'CCTV Installer', 'Internet Technician'
+];
 
 const ProviderAccountScreen = () => {
-  const [name, setName] = useState('Ali Raza');
-  const [phone, setPhone] = useState('03001234567');
-  const [email, setEmail] = useState('ali@example.com');
-  const [password, setPassword] = useState('12345678');
-  const [services, setServices] = useState(['Electrician', 'Plumber']);
-
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
-  const allServices = ['Electrician', 'Plumber', 'Cleaner', 'Painter', 'Carpenter'];
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const userRef = ref(db, 'users/' + user.uid);
+          const snapshot = await get(userRef);
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            setName(data.name || '');
+            setPhone(data.phone || '');
+            setEmail(data.email || '');
+            setServices(data.categories || []);
+          }
+        }
+      } catch (error) {
+        ToastAndroid.show('Failed to load data!', ToastAndroid.SHORT);
+      } finally {
+        setLoading(false);
+      }
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const toggleService = (service) => {
     if (services.includes(service)) {
@@ -28,24 +61,56 @@ const ProviderAccountScreen = () => {
     }
   };
 
-  const handleUpdate = () => {
-    alert('Profile updated successfully!');
+  const handleUpdate = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const userRef = ref(db, 'users/' + user.uid);
+      await update(userRef, {
+        name,
+        phone,
+        email,
+        categories: services,
+      });
+
+      ToastAndroid.show('Profile updated!', ToastAndroid.SHORT);
+    } catch (err) {
+      ToastAndroid.show('Update failed!', ToastAndroid.SHORT);
+    }
   };
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    } catch (e) {
+      ToastAndroid.show('Logout failed!', ToastAndroid.SHORT);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2BF067" />
+        <Text style={{ color: '#ccc', marginTop: 12 }}>Loading your profile...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.outerContainer}>
-      {/* Header with Back Button */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>Provider Profile</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.label}>Full Name</Text>
@@ -53,7 +118,7 @@ const ProviderAccountScreen = () => {
           value={name}
           onChangeText={setName}
           placeholder="Enter name"
-          placeholderTextColor="#999"
+          placeholderTextColor="#777"
           style={styles.input}
         />
 
@@ -62,7 +127,7 @@ const ProviderAccountScreen = () => {
           value={phone}
           onChangeText={setPhone}
           placeholder="Enter phone"
-          placeholderTextColor="#999"
+          placeholderTextColor="#777"
           keyboardType="phone-pad"
           style={styles.input}
         />
@@ -72,22 +137,12 @@ const ProviderAccountScreen = () => {
           value={email}
           onChangeText={setEmail}
           placeholder="Enter email"
-          placeholderTextColor="#999"
+          placeholderTextColor="#777"
           keyboardType="email-address"
           style={styles.input}
         />
 
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Enter password"
-          placeholderTextColor="#999"
-          secureTextEntry
-          style={styles.input}
-        />
-
-        <Text style={styles.label}>Services Provided</Text>
+        <Text style={styles.label}>Services You Offer</Text>
         <View style={styles.servicesContainer}>
           {allServices.map((service, index) => (
             <TouchableOpacity
@@ -114,9 +169,13 @@ const ProviderAccountScreen = () => {
           <Ionicons name="save" size={20} color="#000" style={{ marginRight: 6 }} />
           <Text style={styles.updateText}>Update Profile</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color="#fff" style={{ marginRight: 6 }} />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
       </ScrollView>
 
-      {/* Bottom Nav */}
       <View style={styles.bottomNav}>
         <TouchableOpacity onPress={() => navigation.navigate('ProviderHomeScreen')}>
           <Ionicons name="home" size={24} color="#A0BDA0" />
@@ -141,6 +200,12 @@ const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
     backgroundColor: '#0F2018',
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#0F2018',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -177,7 +242,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   serviceItem: {
-    borderColor: '#555',
+    borderColor: '#444',
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -185,7 +250,7 @@ const styles = StyleSheet.create({
     margin: 4,
   },
   serviceText: {
-    color: '#aaa',
+    color: '#ccc',
     fontSize: 13,
   },
   serviceSelected: {
@@ -207,6 +272,20 @@ const styles = StyleSheet.create({
   },
   updateText: {
     color: '#000',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  logoutBtn: {
+    backgroundColor: '#FF4D4D',
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  logoutText: {
+    color: '#fff',
     fontWeight: 'bold',
     fontSize: 15,
   },

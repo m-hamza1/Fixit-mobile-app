@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,26 +12,33 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 
-const jobList = [
-  {
-    title: 'Plumbing Repair',
-    address: '123 Elm Street, Anytown',
-    // image: require('../../assets/plumbing.jpg'),
-  },
-  {
-    title: 'Electrical Wiring',
-    address: '456 Oak Avenue, Anytown',
-    // image: require('../../assets/electrical.jpg'),
-  },
-  {
-    title: 'Appliance Repair',
-    address: '789 Pine Lane, Anytown',
-    // image: require('../../assets/appliance.jpg'),
-  },
-];
+import { db, auth } from '../../utils/firebase';
+import { ref, onValue } from 'firebase/database';
 
 const ServiceProviderJobRequests = () => {
   const navigation = useNavigation(); 
+  const [jobList, setJobList] = useState([]);
+
+  useEffect(() => {
+    // Listen for pending job requests from Firebase
+    const user = auth.currentUser;
+    if (!user) return;
+    const servicesRef = ref(db, 'services');
+    const unsubscribe = onValue(servicesRef, (snapshot) => {
+      const data = snapshot.val();
+      const jobs = [];
+      if (data) {
+        Object.values(data).forEach((job) => {
+          // Show jobs with status 'pending' and (optionally) addressed to this provider
+          if (job.status === 'pending' && (!job.providerId || job.providerId === '' || job.providerId === user.uid)) {
+            jobs.push(job);
+          }
+        });
+      }
+      setJobList(jobs);
+    });
+    return () => unsubscribe();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -61,22 +68,26 @@ const ServiceProviderJobRequests = () => {
 
       {/* Job Cards */}
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        {jobList.map((job, index) => (
-          <View key={index} style={styles.card}>
-            <View style={styles.cardLeft}>
-              <Text style={styles.newLabel}>New</Text>
-              <Text style={styles.jobTitle}>{job.title}</Text>
-              <Text style={styles.jobAddress}>{job.address}</Text>
-              <TouchableOpacity
-                style={styles.viewButton}
-                onPress={() => navigation.navigate('ServiceProviderBookings')}>
-               <Text style={styles.viewText}>View</Text>
-              </TouchableOpacity>
-
+        {jobList.length === 0 ? (
+          <Text style={{ color: '#fff', textAlign: 'center', marginTop: 40 }}>No new job requests.</Text>
+        ) : (
+          jobList.map((job, index) => (
+            <View key={job.id || index} style={styles.card}>
+              <View style={styles.cardLeft}>
+                <Text style={styles.newLabel}>New</Text>
+                <Text style={styles.jobTitle}>{job.service}</Text>
+                <Text style={styles.jobAddress}>{job.address}</Text>
+                <TouchableOpacity
+                  style={styles.viewButton}
+                  onPress={() => navigation.navigate('RequestDetailsScreen', { request: job })}>
+                  <Text style={styles.viewText}>View</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Optionally show an image if available */}
+              {/* <Image source={job.image} style={styles.cardImage} /> */}
             </View>
-            <Image source={job.image} style={styles.cardImage} />
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
 
       {/* Bottom Navigation (Placeholder) */}
