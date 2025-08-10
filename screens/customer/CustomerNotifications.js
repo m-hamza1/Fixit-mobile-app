@@ -91,7 +91,6 @@ const CustomerNotifications = () => {
   const renderNotification = ({ item }) => {
 
     if (item.type === 'provider_accept') {
-      // If booking is scheduled, show provider phone
       if (item.status === 'scheduled' && item.providerPhone) {
         return (
           <View style={[styles.notifCard, !item.read && styles.unread]}>
